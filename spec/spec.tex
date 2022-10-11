@@ -21,8 +21,15 @@
 
 Usual finite automata move their head in one direction and thus examine the input word only once. How much power would they gain if the input head could move both ways? Surprisingly, these two-way machines can still only recognize regular languages, the same as DFA. During this project I will research various types of two-way automata and design and develop software to simulate and work with them.
 
-\section{Problem Specification}
+\section{Problem}
 
+Normal finite state automata work by reading an input word one character at a time, and either accept or reject based on what state the automata is in after the last input character is read. Two way finite automata however, can go back and forth through the input word multiple times until it either accepts or rejects. 
+
+In this project, I will mainly focus on a specific type of two way automata called Transducers, which introduce the notion of an output word. At each transition, transducers output 0 or more characters in the output alphabet (which could be different to the input alphabet) and move left or right over the input word. These transducers describe what are known as \textit{regular functions} and there are very few software implementations available to simulate and work with these transducers. Specifically, I will work towards creating software that can produce the conjunction of two such transducers and explore how the number of states grows when this happens.
+
+\section{Objectives}
+
+The first part of this project will focus on understanding various proofs that describe properties of these two way automata, such as converting from 2DFA to DFA, and implementing them in software to build up a repository of functions to work with and simulate two way automata, working towards understanding and implementing the proof for conjoining transducers.
 
 
 \end{document}
