@@ -11,8 +11,8 @@
     initial text=$ $
 }
 
-\title{Automata that move both ways}
-\author{James Parkinson}
+\title{Project Specification\\Automata that move both ways}
+\author{James Parkinson\\2005821}
 
 \begin{document}
 \maketitle
@@ -25,11 +25,70 @@ Usual finite automata move their head in one direction and thus examine the inpu
 
 Normal finite state automata work by reading an input word one character at a time, and either accept or reject based on what state the automata is in after the last input character is read. Two way finite automata however, can go back and forth through the input word multiple times until it either accepts or rejects. 
 
-In this project, I will mainly focus on a specific type of two way automata called Transducers, which introduce the notion of an output word. At each transition, transducers output 0 or more characters in the output alphabet (which could be different to the input alphabet) and move left or right over the input word. These transducers describe what are known as \textit{regular functions} and there are very few software implementations available to simulate and work with these transducers. Specifically, I will work towards creating software that can produce the conjunction of two such transducers and explore how the number of states grows when this happens.
+In this project, I will mainly focus on a specific type of two way automata called Transducers, which introduce the idea of an output word. At each transition, transducers output 0 or more characters in the output alphabet (which could be different to the input alphabet) and move left or right over the input word. These transducers describe what are known as \textit{regular functions} and there are very few software implementations available to simulate and work with these transducers. Specifically, I will work towards creating software that can produce the conjunction of two such transducers and explore how the number of states grows when this happens.
 
 \section{Objectives}
 
-The first part of this project will focus on understanding various proofs that describe properties of these two way automata, such as converting from 2DFA to DFA, and implementing them in software to build up a repository of functions to work with and simulate two way automata, working towards understanding and implementing the proof for conjoining transducers.
+The first part of this project will focus on understanding various proofs that describe properties of these two way automata including some constructions, such as converting from 2DFA to 1DFA, and implementing them in software to build up a repository of functions to work with and simulate two way automata, working towards understanding and implementing the proof for conjoining two transducers.
 
+The second part of the project will be using the software I have developed to investigate how much more complex transducers get when a conjunction is performed, and to figure out what properties affect this increase in complexity.
+
+% This project will be split into two parts,
+
+\section{Technical Considerations}
+
+For the software development aspect of this project, I could choose many different programming languages as the vast majority are capable of implementing these simulation algorithms. However, there are a few features that I am prioritising when choosing a language:
+\begin{itemize}
+    \item Speed - As I will be simulating automata, some of the constructions I will be implementing have an exponential increase in the number of states, so I will need to be able to do a lot of processing very quickly to compensate for this, so the performance of a language is quite important. 
+    \item Support - During development it will be very useful for there to be a lot of reliable libraries / packages I can make use of so I can focus on implementing the constructions I have studied and not spend too much time making things like data structures from scratch.
+    \item Readability - Since the constructions I am implementing will be quite complicated, the readability of my code is quite important as the clearer the code is, the easier it is to understand what's going on.
+\end{itemize}
+Considering these aspects, I will now go through a few languages that I have considered and say whether or not they would be a good fit for this project.
+\begin{itemize}
+    \item Python is a very readable language, and since it is so popular there are a vast amount of libraries and packages available. However python is let down by its performance, and so it would not be suitable for this project as it would take too long to process the exponential growth in states for large automata.
+    \item Java has better performance than python and also has a large amount of packages, however it is let down in the readability department as there is a lot of boiler plate code required.
+    \item c++ has the best performance of the three languages by far, as it is a lower level language and has many built in optimisations. c++ also has a lot of packages available to make use of and it is a lot more readable than Java.
+\end{itemize}
+From these comparisons I think it is very clear that c++ would be the best language for me to use during the project as it meets all three of my criteria, and it also has extra features that would be useful to me such as easier memory management.
+
+During the project I will be making use of github for version control, as it is used a lot in industry, and allows for recovery of past code as well as serving as a backup in case anything happens to the storage device in my physical machine.
+
+\section{Timetable}
+
+\begin{center}
+    \begin{tabular}{| c | p{8cm} |}
+        \hline
+        \textbf{Week} & \textbf{Task} \\
+        \hline
+        \multicolumn{2}{|c|}{\textbf{Term 1}} \\
+        \hline
+        W1 & Beginning the project \\
+        W2 & \textit{Project Specification} \\
+        W3 & Gather resources \\
+        W4-W6 & Reading and understanding proofs \\
+        W7 & Begin software implementations \\
+        W8 & \textit{Progress Report} \\
+        W9-10 & Software implementations \\
+        \hline
+        \multicolumn{2}{|c|}{\textit{Christmas holiday}}\\
+        \hline
+        \multicolumn{2}{|c|}{\textbf{Term 2}} \\
+        \hline
+        W1-W2 & Software implementations \\
+        W3-W7 & Investigating complexity \\
+        W8-10 & Project presentation / Final report write up \\
+        \hline
+        \multicolumn{2}{|c|}{\textit{Easter holiday}}\\
+        \hline
+        \multicolumn{2}{|c|}{\textbf{Term 3}}\\
+        \hline
+        W1 & Final report\\
+        \hline
+    \end{tabular}
+\end{center}
+During the christmas and easter holidays I will also be allocating some time to work on the project, however I cannot say how much time I will be able to allocate so it is likely that the vast majority of work will be completed during term time.
+
+\section{Ethical Considerations}
+There are no ethical considerations necessary for this project.
 
 \end{document}
