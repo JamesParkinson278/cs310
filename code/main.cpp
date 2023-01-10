@@ -180,47 +180,19 @@ public:
             for (auto kv : transitions[i]){
                 if (kv.first == RIGHT_ENDMARKER && accept_states.find(kv.second) != accept_states.end()){
                     new_accepts.insert(i);
-                    // printf((to_string(i) + " Is an accept state\n").c_str());
                 }
                 else if (alphabet.find(kv.first) != alphabet.end()){
                     t.insert_or_assign(kv.first, transitions[i][kv.first]);
-                    // string s = "Added transition: D(" + to_string(i) + "," + kv.first + ") = " + to_string(transitions[i][kv.first]) + "\n";
-                    // printf(s.c_str());
                 }
             }
             new_transitions.push_back(t);
         }
-        // transitions.clear();
-        // for (auto t : new_transitions){
-        //     transitions.push_back(t);
-        // }
-        // accept_states.clear();
-        // for (auto s : new_accepts){
-        //     accept_states.insert(s);
-        // }
 
-        // for (int i = 0; i < numStates; i++){
-        //     for (auto kv : new_transitions[i]){
-        //         string s = "Added transition: (" + to_string(i) + "," + kv.first + ") = " + to_string(kv.second) + "\n";
-        //         printf(s.c_str());               
-        //     }
-        // }
-
-        this->transitions = new_transitions;
-        this->accept_states = new_accepts;
-
-        // for (int i = 0; i < numStates; i++){
-        //     for (auto kv : transitions[i]){
-        //         string s = "Transition: (" + to_string(i) + "," + kv.first + ") = " + to_string(kv.second) + "\n";
-        //         printf(s.c_str());               
-        //     }
-        // }
+        transitions = new_transitions;
+        accept_states = new_accepts;
     }
 
     bool run(string w){
-
-        printf("%c\n", w[0]);
-
         STATE currentState = start_state;
         const char* word = w.c_str();
         for (int pos = 0; pos < w.length(); pos++){
@@ -477,11 +449,11 @@ int main(){
     printf((w5 + " : 2DFA - " + bool_to_string(m->run(w5)) + "\n").c_str());
     printf((w6 + " : 2DFA - " + bool_to_string(m->run(w6)) + "\n").c_str());
 
-    printf((w1 + " : DFA - " + bool_to_string(n->run("<" + w1 + ">")) + "\n").c_str());
-    printf((w2 + " : DFA - " + bool_to_string(n->run("<" + w2 + ">")) + "\n").c_str());
-    printf((w3 + " : DFA - " + bool_to_string(n->run("<" + w3 + ">")) + "\n").c_str());
-    printf((w4 + " : DFA - " + bool_to_string(n->run("<" + w4 + ">")) + "\n").c_str());
-    printf((w5 + " : DFA - " + bool_to_string(n->run("<" + w5 + ">")) + "\n").c_str());
-    printf((w6 + " : DFA - " + bool_to_string(n->run("<" + w6 + ">")) + "\n").c_str());
+    printf((w1 + " : DFA - " + bool_to_string(n->run(w1)) + "\n").c_str());
+    printf((w2 + " : DFA - " + bool_to_string(n->run(w2)) + "\n").c_str());
+    printf((w3 + " : DFA - " + bool_to_string(n->run(w3)) + "\n").c_str());
+    printf((w4 + " : DFA - " + bool_to_string(n->run(w4)) + "\n").c_str());
+    printf((w5 + " : DFA - " + bool_to_string(n->run(w5)) + "\n").c_str());
+    printf((w6 + " : DFA - " + bool_to_string(n->run(w6)) + "\n").c_str());
 
 }
