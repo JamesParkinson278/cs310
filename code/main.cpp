@@ -180,31 +180,52 @@ public:
             for (auto kv : transitions[i]){
                 if (kv.first == RIGHT_ENDMARKER && accept_states.find(kv.second) != accept_states.end()){
                     new_accepts.insert(i);
-                    printf((to_string(i) + " Is an accept state\n").c_str());
+                    // printf((to_string(i) + " Is an accept state\n").c_str());
                 }
                 else if (alphabet.find(kv.first) != alphabet.end()){
                     t.insert_or_assign(kv.first, transitions[i][kv.first]);
-                    string s = "Added transition: D(" + to_string(i) + "," + kv.first + ") = " + to_string(transitions[i][kv.first]) + "\n";
-                    printf(s.c_str());
+                    // string s = "Added transition: D(" + to_string(i) + "," + kv.first + ") = " + to_string(transitions[i][kv.first]) + "\n";
+                    // printf(s.c_str());
                 }
             }
-            transitions.push_back(move(t));
+            new_transitions.push_back(t);
         }
-        transitions.clear();
-        for (auto t : new_transitions){
-            transitions.push_back(t);
-        }
-        accept_states.clear();
-        for (auto s : new_accepts){
-            accept_states.insert(s);
-        }
+        // transitions.clear();
+        // for (auto t : new_transitions){
+        //     transitions.push_back(t);
+        // }
+        // accept_states.clear();
+        // for (auto s : new_accepts){
+        //     accept_states.insert(s);
+        // }
+
+        // for (int i = 0; i < numStates; i++){
+        //     for (auto kv : new_transitions[i]){
+        //         string s = "Added transition: (" + to_string(i) + "," + kv.first + ") = " + to_string(kv.second) + "\n";
+        //         printf(s.c_str());               
+        //     }
+        // }
+
+        this->transitions = new_transitions;
+        this->accept_states = new_accepts;
+
+        // for (int i = 0; i < numStates; i++){
+        //     for (auto kv : transitions[i]){
+        //         string s = "Transition: (" + to_string(i) + "," + kv.first + ") = " + to_string(kv.second) + "\n";
+        //         printf(s.c_str());               
+        //     }
+        // }
     }
 
     bool run(string w){
+
+        printf("%c\n", w[0]);
+
         STATE currentState = start_state;
         const char* word = w.c_str();
         for (int pos = 0; pos < w.length(); pos++){
             map<char, STATE> ts = transitions[currentState];
+
             if (ts.find(word[pos]) == ts.end()) return false;
 
             STATE newState = ts[word[pos]];
