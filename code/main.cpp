@@ -39,7 +39,7 @@ public:
     }
 
     set<char> getAlpha(){
-        return move(alphabet);
+        return alphabet;
     }
 
     int getStates(){
@@ -51,11 +51,11 @@ public:
     }
 
     set<STATE> get_accept_states(){
-        return move(accept_states);
+        return accept_states;
     }
 
     deque<map<char, tuple<STATE, DIRECTION>>> getTransitions(){
-        return move(transitions);
+        return transitions;
     }
 
     STATE addState(){
@@ -115,11 +115,11 @@ public:
 
 class DFA {
     set<char> alphabet;
-    int numStates = 0;
     STATE start_state;
     set<STATE> accept_states;
     deque<map<char, STATE>> transitions;
 public:
+    int numStates = 0;
     DFA(string _alphabet) {
         for (char ch : _alphabet) {
             alphabet.insert(ch);
@@ -130,7 +130,7 @@ public:
     }
 
     void setAlpha(set<char> alpha){
-        alphabet = move(alpha);
+        alphabet = alpha;
     }
 
     STATE addState(){
@@ -193,6 +193,16 @@ DFA *convert_to_DFA(Two_DFA *M){
         }
     }
 
+    alphabet.insert(LEFT_ENDMARKER);
+    alphabet.insert(RIGHT_ENDMARKER);
+
+    STATE trap_state = D->addState();
+    for (auto ch : alphabet){
+        D->addTransition(trap_state, ch, trap_state);
+        string s = "Added transition: D(" + to_string(trap_state) + "," + ch + ") = " + to_string(trap_state) + "\n";
+        printf(s.c_str());
+    }
+
     STATE R = -1;
     STATE deltas[numDeltas][numStates];
     for (int j = 0; j < numStates; j++){
@@ -204,13 +214,7 @@ DFA *convert_to_DFA(Two_DFA *M){
         }
     }
 
-    STATE trap_state = D->addState();
-    D->addTransition(trap_state, LEFT_ENDMARKER, trap_state, RIGHT);
-    D->addTransition(trap_state, RIGHT_ENDMARKER, trap_state, RIGHT);
-    for (auto ch : alphabet){
-        D->addTransition(trap_state, ch, trap_state, RIGHT);
-    }
-    
+
     STATE current_state = 0;
     int current_delta = 0;
     new_states[current_state][current_delta] = D->addState();
@@ -221,16 +225,81 @@ DFA *convert_to_DFA(Two_DFA *M){
         new_state_queue.pop_front();
         current_state = get<0>(tmp);
         current_delta = get<1>(tmp);
-        
+
+        for (auto ch : alphabet){
+            STATE new_delta[numStates];
+            for (STATE i = 0; i < numStates; i++){
+                deque<STATE> sequence;
+                sequence.push_back(i);
+                while (sequence.size() < numStates + 1){
+                    tuple<STATE, DIRECTION> next_tuple = transitions[sequence.back()][ch];
+                    STATE next_state = get<0>(next_tuple);
+                    DIRECTION dir = get<1>(next_tuple);
+
+                    if (dir == RIGHT){
+                        new_delta[i] = next_state;
+                        break;
+                    }
+                    else if (dir == STAY){
+                        sequence.push_back(next_state);
+                    }
+                    else if (dir == LEFT){
+                        if (deltas[current_delta][next_state] == R){
+                            new_delta[i] = R;
+                            break;
+                        }
+                        else {
+                            sequence.push_back(deltas[current_delta][next_state]);
+                        }
+                    }
+                }
+                if (sequence.size() == numStates + 1){
+                    new_delta[i] = R;
+                }
+            }
+            int d;
+            for (d = 0; d < numDeltas; d++){
+                bool is_delta = true;
+                for (int s = 0; s < numStates; s++){
+                    is_delta = is_delta && deltas[d][s] == new_delta[s];
+                }
+                if (is_delta || deltas[d][0] == -2){
+                    break;
+                }
+            }
+
+            if (deltas[d][0] == -2){
+                for (int i = 0; i < numStates; i++){
+                    deltas[d][i] = new_delta[i];
+                }
+            }
+
+            STATE new_state = new_delta[current_state];
+            if (new_state == R){
+                D->addTransition(new_states[current_state][current_delta], ch, trap_state);
+                string s = "Added transition: D(" + to_string(new_states[current_state][current_delta]) + "," + ch + ") = " + to_string(trap_state) + "\n";
+                printf(s.c_str());
+            }
+            else{
+                if (new_states[new_state][d] == -1){
+                    new_states[new_state][d] = D->addState();
+                    new_state_queue.push_back(make_tuple(new_state, d));
+                }
+                D->addTransition(new_states[current_state][current_delta], ch, new_states[new_state][d]);
+                string s = "Added transition: D(" + to_string(new_states[current_state][current_delta]) + "," + ch + ") = " + to_string(new_states[new_state][d]) + "\n";
+                printf(s.c_str());
+            }
+        }
     }
 
-
-
     D->makeStart(new_states[0][0]);
+    printf(("The start state is: " + to_string(new_states[0][0]) + "\n").c_str());
     for (auto itr : accept_states){
         for (int j = 0; j < numDeltas; j++){
-            if (new_states[itr][j] != -1);
-            D->makeAccept(new_states[itr][j]);
+            if (new_states[itr][j] != -1){
+                D->makeAccept(new_states[itr][j]);
+                printf((to_string(new_states[itr][j]) + " Is an accept state\n").c_str());
+            }
         }
     }
 
@@ -246,52 +315,46 @@ string bool_to_string(bool b){
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-security"
 
-int main(){
+void test(){
     Two_DFA *m = new Two_DFA("ab");
-    deque<STATE> states = m->addStates(7);
+    deque<STATE> states = m->addStates(6);
     m->makeStart(states[0]);
-    m->makeAccept(states[5]);
     m->addTransition(states[0], LEFT_ENDMARKER, states[0], RIGHT);
+    m->addTransition(states[0], RIGHT_ENDMARKER, states[2], STAY);
     m->addTransition(states[0], 'a', states[1], RIGHT);
     m->addTransition(states[0], 'b', states[0], RIGHT);
-    m->addTransition(states[0], RIGHT_ENDMARKER, states[3], LEFT);
-    m->addTransition(states[1], 'a', states[2], RIGHT);
+
+    m->addTransition(states[1], LEFT_ENDMARKER, states[1], RIGHT);
+    m->addTransition(states[1], RIGHT_ENDMARKER, states[3], RIGHT);
+    m->addTransition(states[1], 'a', states[0], RIGHT);
     m->addTransition(states[1], 'b', states[1], RIGHT);
-    m->addTransition(states[1], RIGHT_ENDMARKER, states[6], LEFT);
-    m->addTransition(states[2], 'a', states[0], RIGHT);
-    m->addTransition(states[2], 'b', states[2], RIGHT);
-    m->addTransition(states[2], RIGHT_ENDMARKER, states[6], LEFT);
-    m->addTransition(states[3], 'a', states[3], LEFT);
-    m->addTransition(states[3], 'b', states[4], LEFT);
-    m->addTransition(states[3], LEFT_ENDMARKER, states[5], RIGHT);
+
+    m->addTransition(states[2], LEFT_ENDMARKER, states[5], RIGHT);
+    m->addTransition(states[2], RIGHT_ENDMARKER, states[2], LEFT);
+    m->addTransition(states[2], 'a', states[2], LEFT);
+    m->addTransition(states[2], 'b', states[4], LEFT);
+
+    m->addTransition(states[3], LEFT_ENDMARKER, states[3], RIGHT);
+    m->addTransition(states[3], RIGHT_ENDMARKER, states[3], RIGHT);
+    m->addTransition(states[3], 'a', states[3], RIGHT);
+    m->addTransition(states[3], 'b', states[3], RIGHT);
+
+    m->addTransition(states[4], LEFT_ENDMARKER, states[3], LEFT);
+    m->addTransition(states[4], RIGHT_ENDMARKER, states[4], LEFT);
     m->addTransition(states[4], 'a', states[4], LEFT);
-    m->addTransition(states[4], 'b', states[3], LEFT);
-    m->addTransition(states[4], LEFT_ENDMARKER, states[6], RIGHT);
+    m->addTransition(states[4], 'b', states[2], LEFT);
+
+    m->addTransition(states[5], LEFT_ENDMARKER, states[5], RIGHT);
+    m->addTransition(states[5], RIGHT_ENDMARKER, states[5], RIGHT);
     m->addTransition(states[5], 'a', states[5], RIGHT);
     m->addTransition(states[5], 'b', states[5], RIGHT);
-    m->addTransition(states[5], RIGHT_ENDMARKER, states[5], RIGHT);
-    m->addTransition(states[6], 'a', states[6], LEFT);
-    m->addTransition(states[6], 'b', states[6], LEFT);
-    m->addTransition(states[6], LEFT_ENDMARKER, states[6], LEFT);
 
-    DFA *n = new DFA("ab");
-    deque<STATE> states2 = n->addStates(6);
-    n->makeStart(states[0]);
-    n->makeAccept(states[0]);
-    n->addTransition(states[0], 'a', states[1]);
-    n->addTransition(states[1], 'a', states[2]);
-    n->addTransition(states[2], 'a', states[0]);
-    n->addTransition(states[0], 'b', states[3]);
-    n->addTransition(states[1], 'b', states[4]);
-    n->addTransition(states[2], 'b', states[5]);
-    n->addTransition(states[3], 'a', states[4]);
-    n->addTransition(states[4], 'a', states[5]);
-    n->addTransition(states[5], 'a', states[3]);
-    n->addTransition(states[3], 'b', states[0]);
-    n->addTransition(states[4], 'b', states[1]);
-    n->addTransition(states[5], 'b', states[2]);
+    m->makeAccept(states[5]);
 
-    string w1 = "abbaaabbabababbaa"; //true
+    DFA* n = convert_to_DFA(m);
+    printf("%d\n", n->numStates);
+
+    string w1 = "aabb"; //true
     string w2 = "aabababbabbbabbab"; //false
     string w3 = "abbababbabbbabbab"; //false
     string w4 = "aabababbabababbab"; //false
@@ -303,7 +366,7 @@ int main(){
     printf((w3 + " : 2DFA - " + bool_to_string(m->run(w3)) + "\n").c_str());
     printf((w4 + " : 2DFA - " + bool_to_string(m->run(w4)) + "\n").c_str());
     printf((w5 + " : 2DFA - " + bool_to_string(m->run(w5)) + "\n").c_str());
-    printf((w6 + " : 2DFA - " + bool_to_string(m->run(w6)) + "\n").c_str());
+    printf((w6 + " : 2DFA - " + bool_to_string(m->run(w6)) + "\n\n").c_str());
 
     printf((w1 + " : DFA - " + bool_to_string(n->run(w1)) + "\n").c_str());
     printf((w2 + " : DFA - " + bool_to_string(n->run(w2)) + "\n").c_str());
@@ -311,5 +374,75 @@ int main(){
     printf((w4 + " : DFA - " + bool_to_string(n->run(w4)) + "\n").c_str());
     printf((w5 + " : DFA - " + bool_to_string(n->run(w5)) + "\n").c_str());
     printf((w6 + " : DFA - " + bool_to_string(n->run(w6)) + "\n").c_str());
+}
+
+int main(){
+    
+    test();
+
+    // Two_DFA *m = new Two_DFA("ab");
+    // deque<STATE> states = m->addStates(7);
+    // m->makeStart(states[0]);
+    // m->makeAccept(states[5]);
+    // m->addTransition(states[0], LEFT_ENDMARKER, states[0], RIGHT);
+    // m->addTransition(states[0], 'a', states[1], RIGHT);
+    // m->addTransition(states[0], 'b', states[0], RIGHT);
+    // m->addTransition(states[0], RIGHT_ENDMARKER, states[3], LEFT);
+    // m->addTransition(states[1], 'a', states[2], RIGHT);
+    // m->addTransition(states[1], 'b', states[1], RIGHT);
+    // m->addTransition(states[1], RIGHT_ENDMARKER, states[6], LEFT);
+    // m->addTransition(states[2], 'a', states[0], RIGHT);
+    // m->addTransition(states[2], 'b', states[2], RIGHT);
+    // m->addTransition(states[2], RIGHT_ENDMARKER, states[6], LEFT);
+    // m->addTransition(states[3], 'a', states[3], LEFT);
+    // m->addTransition(states[3], 'b', states[4], LEFT);
+    // m->addTransition(states[3], LEFT_ENDMARKER, states[5], RIGHT);
+    // m->addTransition(states[4], 'a', states[4], LEFT);
+    // m->addTransition(states[4], 'b', states[3], LEFT);
+    // m->addTransition(states[4], LEFT_ENDMARKER, states[6], RIGHT);
+    // m->addTransition(states[5], 'a', states[5], RIGHT);
+    // m->addTransition(states[5], 'b', states[5], RIGHT);
+    // m->addTransition(states[5], RIGHT_ENDMARKER, states[5], RIGHT);
+    // m->addTransition(states[6], 'a', states[6], LEFT);
+    // m->addTransition(states[6], 'b', states[6], LEFT);
+    // m->addTransition(states[6], LEFT_ENDMARKER, states[6], LEFT);
+
+    // DFA *n = new DFA("ab");
+    // deque<STATE> states2 = n->addStates(6);
+    // n->makeStart(states[0]);
+    // n->makeAccept(states[0]);
+    // n->addTransition(states[0], 'a', states[1]);
+    // n->addTransition(states[1], 'a', states[2]);
+    // n->addTransition(states[2], 'a', states[0]);
+    // n->addTransition(states[0], 'b', states[3]);
+    // n->addTransition(states[1], 'b', states[4]);
+    // n->addTransition(states[2], 'b', states[5]);
+    // n->addTransition(states[3], 'a', states[4]);
+    // n->addTransition(states[4], 'a', states[5]);
+    // n->addTransition(states[5], 'a', states[3]);
+    // n->addTransition(states[3], 'b', states[0]);
+    // n->addTransition(states[4], 'b', states[1]);
+    // n->addTransition(states[5], 'b', states[2]);
+
+    // string w1 = "abbaaabbabababbaa"; //true
+    // string w2 = "aabababbabbbabbab"; //false
+    // string w3 = "abbababbabbbabbab"; //false
+    // string w4 = "aabababbabababbab"; //false
+    // string w5 = "bbaaabbaaabbaaabbaaa"; //true
+    // string w6 = ""; //true
+
+    // printf((w1 + " : 2DFA - " + bool_to_string(m->run(w1)) + "\n").c_str());
+    // printf((w2 + " : 2DFA - " + bool_to_string(m->run(w2)) + "\n").c_str());
+    // printf((w3 + " : 2DFA - " + bool_to_string(m->run(w3)) + "\n").c_str());
+    // printf((w4 + " : 2DFA - " + bool_to_string(m->run(w4)) + "\n").c_str());
+    // printf((w5 + " : 2DFA - " + bool_to_string(m->run(w5)) + "\n").c_str());
+    // printf((w6 + " : 2DFA - " + bool_to_string(m->run(w6)) + "\n").c_str());
+
+    // printf((w1 + " : DFA - " + bool_to_string(n->run(w1)) + "\n").c_str());
+    // printf((w2 + " : DFA - " + bool_to_string(n->run(w2)) + "\n").c_str());
+    // printf((w3 + " : DFA - " + bool_to_string(n->run(w3)) + "\n").c_str());
+    // printf((w4 + " : DFA - " + bool_to_string(n->run(w4)) + "\n").c_str());
+    // printf((w5 + " : DFA - " + bool_to_string(n->run(w5)) + "\n").c_str());
+    // printf((w6 + " : DFA - " + bool_to_string(n->run(w6)) + "\n").c_str());
 
 }
