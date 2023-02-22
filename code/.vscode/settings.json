@@ -4,7 +4,11 @@
         "tuple": "cpp",
         "unordered_map": "cpp",
         "string": "cpp",
-        "random": "cpp"
+        "random": "cpp",
+        "array": "cpp",
+        "string_view": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
