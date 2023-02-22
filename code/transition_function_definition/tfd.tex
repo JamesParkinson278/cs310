@@ -4,31 +4,92 @@
 
 \begin{document}
 \begin{algorithmic}
-    \STATE States $q_C = [q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, i, j, k]$\\
+    \STATE States $q_C = [q_A, q_B, q_{EBA}, q_{EBB}, w, i, k]$\\
     \STATE $q_A \in Q_A$\\
     \STATE $q_B \in Q_B$\\
-    \STATE $\alpha_j \subseteq \delta_A = $ column of restricted configuration graph\\
+    \STATE $q_{EBA} = $ state of Eilenburg bimachine A
+    \STATE $q_{EBB} = $ state of Eilenburg bimachine B
     \STATE $w \in \Gamma^* = $ intermediate word buffer\\
     \STATE $i \in |w| = $ position in $w$\\
-    \STATE $j \in \{0,1,2\} = $ position in $\alpha_0 \alpha_1 \alpha_2$\\
-    \STATE $k \in \dots = $ simulation pointer\\
-    \STATE $k = 0 : $ initialising the first 3 alphas\\
+    \STATE $k \in \dots = $ control pointer\\
+    \STATE $k = 0 : $ initialising the bimachines\\
     \STATE $k = 1 : $ simulating A and B\\
-    \STATE $k = 2 : $ move window to the right, 1\\
-    \STATE $k = 3 : $ move window to the right, 2\\
-    \STATE $k = 4 : $ move window to the left, 1\\
-    \STATE $k = 5 : $ move window to the left, 2\\
-    \STATE $G = $ function to generate a column of the restricted configuration graph based on the current symbol and current configuration graph
-    \STATE $F = $ function to find the unique transition entering a configuration based on the current restricted configuration graph
+    \STATE $k = 2 : $ look one to the right to backtrack bimachine EBB\\
+    \STATE $k = 4 : $ look one to the left to backtrack bimachine EBA\\
 
-    \STATE Initial state: $q_{C0} = [q_{A0}, q_{B0}, \epsilon, \epsilon, 0, 0, 0]$
 
-    \STATE $\delta_C(q_{C0}, <) = ([q_{A0}, q_{B0}, \alpha_0, \epsilon, 0,0,0], +1, \epsilon)$
+    \STATE Initial state: $q_{C0} = [q_{A0}, q_{B0}, q_{EBA0}, q_{EBB0}, \epsilon, 0, 1]$
+    \STATE $q_{EBA0} = ([], [])$
+    \STATE $q_{EBB0} = ([])$
+    \STATE $\delta_A(q_{A0}, <) \gets (q_A', d, <w)$ where $\delta_A(q_{A0}, <) = (q_A', d, w)$
 
-    \STATE $\delta_C([q_{A0}, q_{B0}, \alpha_0, \epsilon, 0,0,0], \sigma) = ([q_{A0}, q_{B0}, \alpha_0 \alpha_1, \epsilon, 0,0,0], +1, \epsilon)$
+    % \STATE Initialising the bimachines:
+    % \STATE $\delta_C(q_{C0}, <) = (q_{C0}, +1, \epsilon)$
+    % \STATE $\delta_C(q_{C0}, \sigma) = (q_{C0}, +1, \epsilon)$
+    % \STATE $\delta_C(q_{C0}, >) = ([q_{A0}, q_{B0}, q_{EBA0}, q_{EBB}', \epsilon, 0, 0], -1, \epsilon)$ where $\delta_{EBB}(q_{EBB0}, >) = q_{EBB}'$
+    % \STATE $\delta_C([q_{A0}, q_{B0}, q_{EBA0}, q_{EBB}, \epsilon, 0, 0], \sigma) = ([q_{A0}, q_{B0}, q_{EBA0}, q_{EBB}', \epsilon, 0, 0], -1, \epsilon)$ where $\delta_{EBB}(q_{EBB},\sigma) = q_{EBB}'$
+    % \STATE $\delta_C([q_{A0}, q_{B0}, q_{EBA0}, q_{EBB}, \epsilon, 0, 0], <) = ([q_{A0}, q_{B0}, q_{EBA0}, q_{EBB}, \epsilon, 0, 1], 0, \epsilon)$
+    
 
-    \STATE $\delta_C([q_{A0}, q_{B0}, \alpha_0 \alpha_1, \epsilon, 0,0,0], \sigma) = ([q_{A0}, q_{B0}, \alpha_0 \alpha_1 \alpha_2, \epsilon, 0,0,1], -1, \epsilon)$\\
+    \STATE Accepting condition:
+    \STATE $\delta_C([q_A, q_{Baccept}, q_{EBA}, q_{EBB}, w, i, 1], \sigma) = (q_{Caccept}, 0, \epsilon)$
 
+
+    \STATE Simulating transducer A to get the next w for transducer B to use:
+    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, |w|, 1], \sigma) = $\\
+        \IF{$\delta_A(q_A, \sigma) = (a_Aaccept, 0, \epsilon)$}
+            \STATE $([q_Aaccept, q_B, q_{EBA}, q_{EBB}, >, 0, 1], 0, \epsilon)$
+        \ELSIF{$\delta_A(q_A, \sigma) = (q_A', 0, u)$}
+            \STATE $([q_A', q_B, q_{EBA}, q_{EBB}, u, 0, 1], 0, \epsilon)$
+        \ELSIF{$\delta_A(q_A, \sigma) = (q_A', +1, u)$ AND $\sigma \neq >$}
+            \STATE $([q_A', q_B, q_{EBA}', q_{EBB}, u, 0, 2], +1, \epsilon)$ where $\delta_{EBA}(q_{EBA}, \sigma) = q_{EBA}'$
+        \ELSIF{$\delta_A(q_A, \sigma) = (q_A', -1, u)$ AND $\sigma \neq <$}
+            \STATE $([q_A', q_B, q_{EBA}, q_{EBB}', u, 0, 4], -1, \epsilon)$ where $\delta_{EBB}(q_{EBB}, \sigma) = q_{EBB}'$
+        \ENDIF
+    
+    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, 0, 2], >) = ([q_A, q_B, q_{EBA}, q_{EBB0}, w, 0, 1], 0, \epsilon)$
+    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, 0, 2], \sigma) = ([q_A, q_B, q_{EBA}, q_{EBB}, w, 0, 3], +1, \epsilon)$
+    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, 0, 3], \sigma) = ([q_A, q_B, q_{EBA}, q_{EBB}', w, 0, 1], -1, \epsilon)$ where $q_{EBB}'$ can be derived from the available information
+
+    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, 0, 4], <) = ([q_A, q_B, q_{EBA0}, q_{EBB}, w, 0, 1], 0, \epsilon)$
+    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, 0, 4], \sigma) = ([q_A, q_B, q_{EBA}, q_{EBB}, w, 0, 5], -1, \epsilon)$
+    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, 0, 5], \sigma) = ([q_A, q_B, q_{EBA}', q_{EBB}, w, 0, 1], +1, \epsilon)$ where $q_{EBA}'$ can be derived from the available information
+
+
+    \STATE Simulating transducer B on w:
+    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, i, 1], \sigma) = $
+        \IF{$\delta_B(q_B, w[i]) = (q_B', 0, u)$}
+            \STATE $([q_A, q_B', q_{EBA}, q_{EBB}, w, i, 1], 0, u)$ 
+        \ELSIF{$\delta_B(q_B, w[i]) = (q_B', +1, u)$ AND $w[i] \neq >$}
+            \STATE $([q_A, q_B', q_{EBA}, q_{EBB}, w, i+1, 1], 0, u)$ 
+        \ELSIF{$\delta_B(q_B, w[i]) = (q_B', -1, u)$ AND $w[i] \neq <$}
+            \STATE $([q_A, q_B', q_{EBA}, q_{EBB}, w, i-1, 1], 0, u)$ 
+        \ENDIF
+
+    \STATE Backtrack transducer A if transducer B needs to go left out of w:
+    \STATE $\gamma(q_{EBA}, q_{EBB}, \sigma) = \alpha$
+    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, -1, 1], \sigma) = $\\
+    \IF{$\alpha(q_A) = 0$}
+        \STATE $([q_A', q_B, q_{EBA}, q_{EBB}, u, |u| - 1, 1], 0, \epsilon)$ where $\delta_A(q_A', \sigma) = (q_A, 0, u)$
+    \ELSIF{$\alpha(q_A) = +1$}
+        \STATE $([q_A, q_B, q_{EBA}', q_{EBB}, w, -1, 6], +1, \epsilon)$ where $\delta_{EBA}(q_{EBA}, \sigma) = q_{EBA}'$
+    \ELSIF{$\alpha(q_A) = -1$}
+        \STATE $([q_A, q_B, q_{EBA}, q_{EBB}', w, -1, 8], -1, \epsilon)$ where $\delta_{EBB}(q_{EBB}, \sigma) = q_{EBB}'$
+    \ENDIF
+
+    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, -1, 6], \sigma) = ([q_A, q_B, q_{EBA}, q_{EBB}, w, -1, 7], +1, \epsilon)$
+    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, -1, 7], \sigma) = ([q_A', q_B, q_{EBA}, q_{EBB}', u, |u|-1, 1], -1, \epsilon)$ where $q_{EBB}'$ can be derived from the available information and $\delta_A(q_A', \sigma) = (q_A, -1, u)$
+
+    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, -1, 8], \sigma) = ([q_A, q_B, q_{EBA}, q_{EBB}, w, 0, 8], -1, \epsilon)$
+    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, -1, 9], \sigma) = ([q_A', q_B, q_{EBA}', q_{EBB}, u, |u|-1, 1], +1, \epsilon)$ where $q_{EBA}'$ can be derived from the available information and $\delta_A(q_A', \sigma) = (q_A, +1, u)$
+
+
+\end{algorithmic}
+\pagebreak
+
+
+
+\begin{algorithmic}
     \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, |w|, j, 1], \sigma) =$\\
         \IF{$\alpha_j(q_A) = (q_A', 0, u)$}
             \STATE $([q_A', q_B, \alpha_0 \alpha_1 \alpha_2, u, 0, j, 1], 0, \epsilon)$\\
@@ -75,16 +136,16 @@
 \begin{algorithmic}
     \STATE Eilenburg Bimachine Definition:
     \STATE $EB = (A, B, \Sigma, \Gamma, \gamma)$
-    \STATE $A = (Q_{AEB}, \Sigma, \delta_{AEB})$ Left to right sequential
-    \STATE $Q_{AEB} = (\subseteq Q_A \times Q_A, \subseteq Q_A)$ (all paths from column $i-1$ to $i-1$ while only visiting configurations $< i$, all states in layer $i-1$ that are reachable from the initial state while staying $< i$)
-    \STATE $\delta_{AEB}: Q_{AEB} \times \Sigma \to Q_{AEB}$
-    \STATE $B = (Q_{BEB}, \Sigma, \delta_{BEB})$ Right to left sequential
-    \STATE $Q_{BEB} = (\subseteq Q_A \times Q_A)$ (all paths from column $i+1$ to $i + 1$ while only visiting configurations $> i$)
-    \STATE $\delta_{BEB}: Q_{BEB} \times \Sigma \to Q_{BEB}$
+    \STATE $A = (Q_{EBA}, \Sigma, \delta_{EBA})$ Left to right sequential
+    \STATE $Q_{EBA} = (\subseteq Q_A \times Q_A, \subseteq Q_A)$ (all paths from column $i-1$ to $i-1$ while only visiting configurations $< i$, all states in layer $i-1$ that are reachable from the initial state while staying $< i$)
+    \STATE $\delta_{EBA}: Q_{EBA} \times \Sigma \to Q_{EBA}$
+    \STATE $B = (Q_{EBB}, \Sigma, \delta_{EBB})$ Right to left sequential
+    \STATE $Q_{EBB} = (\subseteq Q_A \times Q_A)$ (all paths from column $i+1$ to $i + 1$ while only visiting configurations $> i$)
+    \STATE $\delta_{EBB}: Q_{EBB} \times \Sigma \to Q_{EBB}$
     \STATE $\Sigma = $ Input alphabet
     \STATE $ \Gamma = $ Output alphabet
     \STATE $\gamma = $ Output function
-    \STATE $\gamma: Q_{AEB} \times Q_{BEB} \times \Sigma \to \Gamma$
+    \STATE $\gamma: Q_{EBA} \times Q_{EBB} \times \Sigma \to \Gamma$
 \end{algorithmic}
 
 
