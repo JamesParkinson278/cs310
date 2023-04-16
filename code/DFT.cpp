@@ -151,6 +151,14 @@ struct ELR {
 bool operator ==(const ELR& x, const ELR& y) {
     return std::tie(x.paths, x.initial, x.ch) == std::tie(y.paths, y.initial, y.ch);
 }
+string to_string(ELR e){
+    string str = "(";
+    for (auto path : e.paths){
+        str += "(" + to_string(get<0>(path)) + "," + to_string(get<1>(path)) + ")";
+    }
+    str += ", " + to_string(e.initial) + ", " + to_string(e.ch) + ")";
+    return str;
+}
 
 struct ERL {
     deque<tuple<STATE, STATE>> paths;
@@ -158,6 +166,14 @@ struct ERL {
 };
 bool operator ==(const ERL& x, const ERL& y) {
     return std::tie(x.paths, x.ch) == std::tie(y.paths, y.ch);
+}
+string to_string(ERL e){
+    string str = "(";
+    for (auto path : e.paths){
+        str += "(" + to_string(get<0>(path)) + "," + to_string(get<1>(path)) + ")";
+    }
+    str += ", " + to_string(e.ch) + ")";
+    return str;
 }
 
 struct new_state_struct {
@@ -169,9 +185,23 @@ struct new_state_struct {
     int i;
     int k;
     STATE id;
+    deque<tuple<STATE, STATE>> candidates;
+    STATE initial;
 };
 bool operator ==(const new_state_struct& x, const new_state_struct& y) {
-    return std::tie(x.q_A, x.q_B, x.q_LR, x.q_RL, x.w, x.i, x.k) == std::tie(y.q_A, y.q_B, y.q_LR, y.q_RL, y.w, y.i, y.k);
+    return std::tie(x.q_A, x.q_B, x.q_LR, x.q_RL, x.w, x.i, x.k, x.candidates, x.initial) == std::tie(y.q_A, y.q_B, y.q_LR, y.q_RL, y.w, y.i, y.k, y.candidates, y.initial);
+}
+string to_string(deque<tuple<STATE, STATE>> candidates){
+    string str = "(";
+    for (auto c : candidates){
+        str += "(" + to_string(get<0>(c)) + "," + to_string(get<1>(c)) + ")";
+    }
+    str += ")";
+    return str;
+}
+string to_string(new_state_struct s){
+    string str = "(" + to_string(s.q_A) + ", " + to_string(s.q_B) + ", " + to_string(s.q_LR) + ", " + to_string(s.q_RL) + ", " + s.w + ", " + to_string(s.i) + ", " + to_string(s.k) + ", " + to_string(s.id) + ", " + to_string(s.candidates) + ", " + to_string(s.initial) + ")";
+    return str;
 }
 
 new_state_struct createNewState(Two_DFT *C, deque<new_state_struct>*** new_states, deque<new_state_struct>* new_state_queue, STATE q_A, STATE q_B, ELR q_LR, ERL q_RL, string u, int i, int k){
@@ -183,6 +213,10 @@ new_state_struct createNewState(Two_DFT *C, deque<new_state_struct>*** new_state
     new_state.w = u;
     new_state.i = i;
     new_state.k = k;
+
+    deque<tuple<STATE, STATE>> empty;
+    new_state.candidates = empty;
+    new_state.initial = -1;
 
     deque<new_state_struct> arr = *new_states[q_A][q_B];
     int j;
@@ -200,10 +234,38 @@ new_state_struct createNewState(Two_DFT *C, deque<new_state_struct>*** new_state
     }
 
     return arr[j];
-
-
-    // C->addTransition(new_states[current_state], new_states[new_state], STAY, "", v);
 }
+
+new_state_struct createNewState(Two_DFT *C, deque<new_state_struct>*** new_states, deque<new_state_struct>* new_state_queue, STATE q_A, STATE q_B, ELR q_LR, ERL q_RL, string u, int i, int k, deque<tuple<STATE, STATE>> candidates, STATE initial){
+    new_state_struct new_state;
+    new_state.q_A = q_A;
+    new_state.q_B = q_B;
+    new_state.q_LR = q_LR;
+    new_state.q_RL = q_RL;
+    new_state.w = u;
+    new_state.i = i;
+    new_state.k = k;
+    new_state.candidates = candidates;
+    new_state.initial = initial;
+
+    deque<new_state_struct> arr = *new_states[q_A][q_B];
+    int j;
+    for (j = 0; j < arr.size(); j++){
+        if (arr[j] == new_state){
+            break;
+        }
+    }
+
+    if (j == arr.size()){
+        new_state.id = C->addState();
+        new_states[q_A][q_B]->push_back(new_state);
+        new_state_queue->push_back(new_state);
+        return new_state;
+    }
+
+    return arr[j];
+}
+
 
 Two_DFT *compose(Two_DFT *B, Two_DFT *A, bool v = false){
     //initialise variables
@@ -292,13 +354,12 @@ Two_DFT *compose(Two_DFT *B, Two_DFT *A, bool v = false){
         if (current_state.q_B == accept_state_B && current_state.k == 1){
             for (auto ch : input_alphabet){
                 C->addTransition(current_state.id, ch, accept_state_C, STAY, "", true);
+                // fprintf(stdout, (to_string(current_state) + "\n" + to_string(accept_state_C) + "\n").c_str());
             }
             continue;
         }
 
         for (auto ch : input_alphabet){
-            if (current_state.qLR.ch != -1 && ch == LEFT_ENDMARKER || current_state.qRL.ch != -1 && ch == RIGHT_ENDMARKER) continue;
-
             if (current_state.k == 1){
                 if (current_state.i == current_state.w.length()){
                     tuple<STATE, DIRECTION, string> transition = transitions_A[current_state.q_A][ch];
@@ -307,22 +368,14 @@ Two_DFT *compose(Two_DFT *B, Two_DFT *A, bool v = false){
                     string u = get<2>(transition);
                     if (q_Ap == accept_state_A){
                         u.push_back(RIGHT_ENDMARKER);
-                        // new_state_struct new_state = make_tuple(q_Ap, q_B, q_EBA, q_EBB, u, 0, 1);
-                        // if (new_states.find(new_state) == new_states.end()){
-                        //     new_states.insert({new_state, C->addState()});
-                        //     new_state_queue.push_back(new_state);
-                        // }
                         new_state_struct new_state = createNewState(C, new_states, new_state_queue, q_Ap, current_state.q_B, current_state.q_LR, current_state.q_RL, u, 0, 1);
                         C->addTransition(current_state.id, ch, new_state.id, STAY, "", true);
+                        // fprintf(stdout, (to_string(current_state) + "\n" + to_string(new_state) + "\n").c_str());
                     }
                     else if (d == STAY){
-                        // new_state_type new_state = make_tuple(q_Ap, q_B, q_EBA, q_EBB, u, 0, 1);
-                        // if (new_states.find(new_state) == new_states.end()){
-                        //     new_states.insert({new_state, C->addState()});
-                        //     new_state_queue.push_back(new_state);
-                        // }
                         new_state_struct new_state = createNewState(C, new_states, new_state_queue, q_Ap, current_state.q_B, current_state.q_LR, current_state.q_RL, u, 0, 1);
                         C->addTransition(current_state.id, ch, new_state.id, STAY, "", true);
+                        // fprintf(stdout, (to_string(current_state) + "\n" + to_string(new_state) + "\n").c_str());
 
                         // C->addTransition(new_states[current_state], ch, new_states[new_state], STAY, "");
                     }
@@ -339,14 +392,14 @@ Two_DFT *compose(Two_DFT *B, Two_DFT *A, bool v = false){
                             while (get<1>(transitions_A[cur][ch]) != RIGHT){
                                 if (get<1>(transitions_A[cur][ch]) == STAY){
                                     cur = get<0>(transitions_A[cur][ch]);
-                                    new_paths.push_back(make_tuple(s, cur));
+                                    // new_paths.push_back(make_tuple(s, cur));
                                 }
                                 else if (get<1>(transitions_A[cur][ch]) == LEFT){
                                     STATE sp = get<0>(transitions_A[cur][ch]);
                                     for (auto path : paths){
-                                        if (get<0>(path) == sp && get<1>(transitions_A[get<1>(path)][ch2]) == RIGHT){
+                                        if (ch2 != -1 && get<0>(path) == sp && get<1>(transitions_A[get<1>(path)][ch2]) == RIGHT){
                                             cur = get<0>(transitions_A[get<1>(path)][ch2]);
-                                            new_paths.push_back(make_tuple(s,cur));
+                                            // new_paths.push_back(make_tuple(s,cur));
                                         }
                                     }
                                 }
@@ -374,6 +427,7 @@ Two_DFT *compose(Two_DFT *B, Two_DFT *A, bool v = false){
 
                         new_state_struct new_state = createNewState(C, new_states, new_state_queue, q_Ap, current_state.q_B, q_LRp, current_state.q_RL, u, 0, 2);
                         C->addTransition(current_state.id, ch, new_state.id, RIGHT, "", true);
+                        // fprintf(stdout, (to_string(current_state) + "\n" + to_string(new_state) + "\n").c_str());
                     }
                     else if (d == LEFT && ch != LEFT_ENDMARKER){
                         ERL q_RLp;
@@ -387,14 +441,14 @@ Two_DFT *compose(Two_DFT *B, Two_DFT *A, bool v = false){
                             while (get<1>(transitions_A[cur][ch]) != LEFT){
                                 if (get<1>(transitions_A[cur][ch]) == STAY){
                                     cur = get<0>(transitions_A[cur][ch]);
-                                    new_paths.push_back(make_tuple(s, cur));
+                                    // new_paths.push_back(make_tuple(s, cur));
                                 }
                                 else if (get<1>(transitions_A[cur][ch]) == RIGHT){
                                     STATE sp = get<0>(transitions_A[cur][ch]);
                                     for (auto path : paths){
-                                        if (get<0>(path) == sp && get<1>(transitions_A[get<1>(path)][ch2]) == LEFT){
+                                        if (ch2 != -1 && get<0>(path) == sp && get<1>(transitions_A[get<1>(path)][ch2]) == LEFT){
                                             cur = get<0>(transitions_A[get<1>(path)][ch2]);
-                                            new_paths.push_back(make_tuple(s,cur));
+                                            // new_paths.push_back(make_tuple(s,cur));
                                         }
                                     }
                                 }
@@ -404,6 +458,7 @@ Two_DFT *compose(Two_DFT *B, Two_DFT *A, bool v = false){
 
                         new_state_struct new_state = createNewState(C, new_states, new_state_queue, q_Ap, current_state.q_B, current_state.q_LR, q_RLp, u, 0, 4);
                         C->addTransition(current_state.id, ch, new_state.id, LEFT, "", true);
+                        // fprintf(stdout, (to_string(current_state) + "\n" + to_string(new_state) + "\n").c_str());
                     }
                 }
                 else if (current_state.i >= 0){
@@ -413,6 +468,7 @@ Two_DFT *compose(Two_DFT *B, Two_DFT *A, bool v = false){
                     string u = get<2>(transition);
                     new_state_struct new_state = createNewState(C, new_states, new_state_queue, current_state.q_A, q_Bp, current_state.q_LR, current_state.q_RL, current_state.w, current_state.i + d, 1);
                     C->addTransition(current_state.id, ch, new_state.id, STAY, u, true);
+                    // fprintf(stdout, (to_string(current_state) + "\n" + to_string(new_state) + "\n").c_str());
                 }
             }
             else if (current_state.k == 2){
@@ -420,10 +476,15 @@ Two_DFT *compose(Two_DFT *B, Two_DFT *A, bool v = false){
                     if (ch == RIGHT_ENDMARKER){
                         new_state_struct new_state = createNewState(C, new_states, new_state_queue, current_state.q_A, current_state.q_B, current_state.q_LR, q_RL0, current_state.w, current_state.i, 1);
                         C->addTransition(current_state.id, ch, new_state.id, STAY, "", true);
+                        // fprintf(stdout, (to_string(current_state) + "\n" + to_string(new_state) + "\n").c_str());
                     }
                     else if (ch != LEFT_ENDMARKER) {
-                        new_state_struct new_state = createNewState(C, new_states, new_state_queue, current_state.q_A, current_state.q_B, current_state.q_LR, current_state.q_RL, current_state.w, current_state.i, 3);
+                        ERL q_RLp;
+                        q_RLp.ch = ch;
+                        q_RLp.paths = current_state.q_RL.paths;
+                        new_state_struct new_state = createNewState(C, new_states, new_state_queue, current_state.q_A, current_state.q_B, current_state.q_LR, q_RLp, current_state.w, current_state.i, 3);
                         C->addTransition(current_state.id, ch, new_state.id, RIGHT, "", true);
+                        // fprintf(stdout, (to_string(current_state) + "\n" + to_string(new_state) + "\n").c_str());
                     }
                 }
             }
@@ -437,152 +498,120 @@ Two_DFT *compose(Two_DFT *B, Two_DFT *A, bool v = false){
                 }
                 for (auto path : paths){
                     STATE cur = get<0>(path);
-                    while (get<1>(transitions_A[cur][current_state.q_RL.ch]) != RIGHT){
+                    while (get<1>(transitions_A[cur][current_state.q_RL.ch]) == STAY){
                         cur = get<0>(transitions_A[cur][current_state.q_RL.ch]);
                     }
-                    STATE s1 = get<0>(transitions_A[cur][current_state.q_RL.ch]);
-                    for (STATE s2 = 0; s2 < num_states_A; s2++){ //THIS WONT WORK COMPLETELY COS THERE'S MULTIPLE OPTIONS
-                        if (get<0>(transitions_A[s2][ch]) == get<1>(path)){
-                            new_paths.push_back(make_tuple(s1,s2));
-                            break;
+                    if (get<1>(transitions_A[cur][current_state.q_RL.ch]) == RIGHT){
+                        STATE s1 = get<0>(transitions_A[cur][current_state.q_RL.ch]);
+                        for (STATE s2 = 0; s2 < num_states_A; s2++){ //THIS WONT WORK COMPLETELY COS THERE'S MULTIPLE OPTIONS
+                            if (get<0>(transitions_A[s2][ch]) == get<1>(path) && get<1>(transitions_A[s2][ch]) == LEFT && s1 != s2){
+                                new_paths.push_back(make_tuple(s1,s2));
+                                break;
+                            }
                         }
                     }
                 }
                 q_RLp.paths = new_paths;
                 new_state_struct new_state = createNewState(C, new_states, new_state_queue, current_state.q_A, current_state.q_B, current_state.q_LR, q_RLp, current_state.w, 0, 1);
                 C->addTransition(current_state.id, ch, new_state.id, LEFT, "", true);
+                // fprintf(stdout, (to_string(current_state) + "\n" + to_string(new_state) + "\n").c_str());
+            }   
+            else if (current_state.k == 4){
+                if (current_state.q_LR.ch == -1 || current_state.q_LR.ch == ch){
+                    if (ch == LEFT_ENDMARKER){
+                        new_state_struct new_state = createNewState(C, new_states, new_state_queue, current_state.q_A, current_state.q_B, q_LR0, current_state.q_RL, current_state.w, current_state.i, 1);
+                        C->addTransition(current_state.id, ch, new_state.id, STAY, "", true);
+                        // fprintf(stdout, (to_string(current_state) + "\n" + to_string(new_state) + "\n").c_str());
+                    }
+                    else if (ch != RIGHT_ENDMARKER) {
+                        ELR q_LRp;
+                        q_LRp.ch = ch;
+                        q_LRp.paths = current_state.q_LR.paths;
+                        q_LRp.initial = current_state.q_LR.initial;
+
+                        ERL q_RLp;
+                        q_RLp.ch = ch;
+                        char ch2 = current_state.q_RL.ch;
+                        deque<tuple<STATE, STATE>> paths = current_state.q_RL.paths;
+                        deque<tuple<STATE, STATE>> new_paths;
+                        for (STATE s = 0; s < num_states_A; s++){
+                            STATE cur = s;
+                            new_paths.push_back(make_tuple(s,cur));
+                            while (get<1>(transitions_A[cur][ch]) != LEFT){
+                                if (get<1>(transitions_A[cur][ch]) == STAY){
+                                    cur = get<0>(transitions_A[cur][ch]);
+                                    // new_paths.push_back(make_tuple(s, cur));
+                                }
+                                else if (get<1>(transitions_A[cur][ch]) == RIGHT){
+                                    STATE sp = get<0>(transitions_A[cur][ch]);
+                                    for (auto path : paths){
+                                        if (ch2 != -1 && get<0>(path) == sp && get<1>(transitions_A[get<1>(path)][ch2]) == LEFT){
+                                            cur = get<0>(transitions_A[get<1>(path)][ch2]);
+                                            // new_paths.push_back(make_tuple(s,cur));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        q_RLp.paths = new_paths;
+
+                        deque<tuple<STATE, STATE>> candidates;
+                        new_state_struct new_state = createNewState(C, new_states, new_state_queue, current_state.q_A, current_state.q_B, q_LRp, q_RLp, current_state.w, 0, 5, candidates, current_state.q_LR.initial);
+                        C->addTransition(current_state.id, ch, new_state.id, LEFT, "", true);    
+                        // fprintf(stdout, (to_string(current_state) + "\n" + to_string(new_state) + "\n").c_str());                
+                    }
+                }
             }
-            
+            else if (current_state.k == 5 && ch != RIGHT_ENDMARKER){
+                ELR q_LRp;
+                q_LRp.ch = ch;
+                deque<tuple<STATE, STATE>> paths = current_state.q_LR.paths;
+                deque<tuple<STATE, STATE>> new_paths;
+                for (STATE s = 0; s < num_states_A; s++){
+                    new_paths.push_back(make_tuple(s,s));
+                }
+                for (auto path : paths){
+                    STATE cur = get<0>(path);
+                    while (get<1>(transitions_A[cur][current_state.q_LR.ch]) == STAY){
+                        cur = get<0>(transitions_A[cur][current_state.q_LR.ch]);
+                    }
+                    if (get<1>(transitions_A[cur][current_state.q_LR.ch]) == LEFT){
+                        deque<STATE> starts;
+                        STATE s1 = get<0>(transitions_A[cur][current_state.q_LR.ch]);
+                        do {
+                            starts.push_back(s1);
+                            s1 = get<0>(transitions_A[s1][ch]);
+                        } while (get<1>(transitions_A[s1][ch]) == STAY);
+                        for (STATE s2 = 0; s2 < num_states_A; s2++){ //THIS WONT WORK COMPLETELY COS THERE COULD BE MULTIPLE OPTIONS
+                            if (get<0>(transitions_A[s2][ch]) == get<1>(path) && get<1>(transitions_A[s2][ch]) == RIGHT){
+                                for (STATE s3 : starts){
+                                    new_paths.push_back(make_tuple(s3,s2));
+                                }
+                                break;
+                            } CHANGE ALL OF THIS 
+                        }
+                    }
+                }
+                q_LRp.paths = new_paths;
+                // new_state_struct new_state = createNewState(C, new_states, new_state_queue, current_state.q_A, current_state.q_B, q_LRp, current_state.q_LR, current_state.w, 0, 1);
+                // C->addTransition(current_state.id, ch, new_state.id, RIGHT, "", true);
+                // fprintf(stdout, (to_string(current_state) + "\n" + to_string(new_state) + "\n").c_str());
+
+
+                if (current_state.candidates.size() == 0){
+                     for (STATE s = 0; s < num_states_A; s++){
+                         tuple<STATE, DIRECTION, string> t1 = transitions_A[s][ch];
+                         if (get<0>(t1) == current_state.initial && get<1>(t1) == RIGHT){
+                             current_state.candidates.push_back(make_tuple(s,s));
+                         }
+                     }
+                }
+
+                if (current_state.candidates.size() == 1){
+                    q_LRp.initial = get<0>(current_state.candidates.front());
+                }
+            }
         }
-
-    //     //\delta_C([q_A,q_B,alphas,w,|w|,j,1],\sigma) =
-    //     if (current_sim == 1){
-    //         if (position_in_w == w.length()){
-    //             tuple<set<tuple<STATE, STATE, DIRECTION, string>>, char> alpha = alphas[current_alpha];
-    //             tuple<STATE, STATE, DIRECTION, string> transition;
-    //             for (auto t : get<0>(alpha)){
-    //                 if (get<0>(t) == q_A){
-    //                     transition = t;
-    //                     break;
-    //                 }
-    //             }
-    //             STATE q_Ap = get<1>(transition);
-    //             DIRECTION d = get<2>(transition);
-    //             string u = get<3>(transition);
-    //             if (d == STAY){
-                    // new_state_type new_state = make_tuple(q_Ap, q_B, alphas, u, 0, current_alpha, 1);
-                    // if (new_states.find(new_state) == new_states.end()){
-                    //     new_states.insert({new_state, C->addState()});
-                    //     new_state_queue.push_back(new_state);
-                    // }
-                    // C->addTransition(new_states[current_state], get<1>(alphas[1]), new_states[new_state], STAY, "", v);
-    //             }
-    //             else if (d == RIGHT){
-    //                 if (current_alpha == 2){
-    //                     if (get<1>(alphas[2]) == RIGHT_ENDMARKER){
-    //                         C->addTransition(new_states[current_state], get<1>(alphas[1]), accept_state, RIGHT, "", v);
-    //                         continue;
-    //                     }
-                        // new_state_type new_state = make_tuple(q_Ap, q_B, alphas, u, 0, 2, 2);
-                        // if (new_states.find(new_state) == new_states.end()){
-                        //     new_states.insert({new_state, C->addState()});
-                        //     new_state_queue.push_back(new_state);
-                        // }
-    //                     C->addTransition(new_states[current_state], get<1>(alphas[1]), new_states[new_state], RIGHT, "", v);
-    //                 }
-    //                 else {
-    //                     new_state_type new_state = make_tuple(q_Ap, q_B, alphas, u, 0, current_alpha + 1, 1);
-    //                     if (new_states.find(new_state) == new_states.end()){
-    //                         new_states.insert({new_state, C->addState()});
-    //                         new_state_queue.push_back(new_state);
-    //                     }
-    //                     C->addTransition(new_states[current_state], get<1>(alphas[1]), new_states[new_state], STAY, "", v);
-    //                 }
-    //             }
-    //             else if (d == LEFT){
-    //                 if (current_alpha == 0){
-    //                     if (get<1>(alphas[0]) == LEFT_ENDMARKER){
-    //                         C->addTransition(new_states[current_state], get<1>(alphas[1]), accept_state, RIGHT, "", v);
-    //                         continue;
-    //                     }
-    //                     new_state_type new_state = make_tuple(q_Ap, q_B, alphas, u, 0, 0, 4);
-    //                     if (new_states.find(new_state) == new_states.end()){
-    //                         new_states.insert({new_state, C->addState()});
-    //                         new_state_queue.push_back(new_state);
-    //                     }
-    //                     C->addTransition(new_states[current_state], get<1>(alphas[1]), new_states[new_state], LEFT, "", v);
-    //                 }
-    //                 else {
-    //                     new_state_type new_state = make_tuple(q_Ap, q_B, alphas, u, 0, current_alpha - 1, 1);
-    //                     if (new_states.find(new_state) == new_states.end()){
-    //                         new_states.insert({new_state, C->addState()});
-    //                         new_state_queue.push_back(new_state);
-    //                     }
-    //                     C->addTransition(new_states[current_state], get<1>(alphas[1]), new_states[new_state], STAY, "", v);
-    //                 }
-    //             }
-    //         }
-    //         else if (position_in_w >= 0){
-    //             tuple<STATE, DIRECTION, string> transition = transitions_B[q_B][w[position_in_w]];
-    //             STATE q_Bp = get<0>(transition);
-    //             DIRECTION d = get<1>(transition);
-    //             string output = get<2>(transition);
-    //             new_state_type new_state = make_tuple(q_A, q_Bp, alphas, w, position_in_w + d, current_alpha, 1);
-    //             if (new_states.find(new_state) == new_states.end()){
-    //                 new_states.insert({new_state, C->addState()});
-    //                 new_state_queue.push_back(new_state);
-    //             }
-    //             C->addTransition(new_states[current_state], get<1>(alphas[1]), new_states[new_state], STAY, output, v);
-    //         }
-            
-    //     }
-    //     else if (current_sim == 2){
-    //         new_state_type new_state = make_tuple(q_A, q_B, alphas, w, 0, 2, 3);
-    //         if (new_states.find(new_state) == new_states.end()){
-    //             new_states.insert({new_state, C->addState()});
-    //             new_state_queue.push_back(new_state);
-    //         }
-    //         C->addTransition(new_states[current_state], get<1>(alphas[2]), new_states[new_state], RIGHT, "", v);
-    //     }
-    //     else if (current_sim == 3){
-    //         for (auto ch : input_alphabet){
-    //             if (ch == LEFT_ENDMARKER) continue;
-    //             tuple<set<tuple<STATE, STATE, DIRECTION, string>>, char> alphasP[3];
-    //             alphasP[0] = alphas[1];
-    //             alphasP[1] = alphas[2];
-    //             alphasP[2] = graph_alphabet[ch];
-    //             new_state_type new_state = make_tuple(q_A, q_B, restrict_alphas(alphasP, q_A, 2), w, 0, 2, 1);
-    //             if (new_states.find(new_state) == new_states.end()){
-    //                 new_states.insert({new_state, C->addState()});
-    //                 new_state_queue.push_back(new_state);
-    //             }
-    //             C->addTransition(new_states[current_state], ch, new_states[new_state], LEFT, "", v);  
-    //         }
-    //     }
-
-    //     else if (current_sim == 4){
-    //         new_state_type new_state = make_tuple(q_A, q_B, alphas, w, 0, 0, 5);
-    //         if (new_states.find(new_state) == new_states.end()){
-    //             new_states.insert({new_state, C->addState()});
-    //             new_state_queue.push_back(new_state);
-    //         }
-    //         C->addTransition(new_states[current_state], get<1>(alphas[0]), new_states[new_state], LEFT, "", v);
-    //     }
-    //     else if (current_sim == 5){
-    //         for (auto ch : input_alphabet){
-    //             if (ch == RIGHT_ENDMARKER) continue;
-    //             tuple<set<tuple<STATE, STATE, DIRECTION, string>>, char> alphasP[3];
-    //             alphasP[2] = alphas[1];
-    //             alphasP[1] = alphas[0];
-    //             alphasP[0] = graph_alphabet[ch];
-    //             new_state_type new_state = make_tuple(q_A, q_B, restrict_alphas(alphasP, q_A, 0), w, 0, 0, 1);
-    //             if (new_states.find(new_state) == new_states.end()){
-    //                 new_states.insert({new_state, C->addState()});
-    //                 new_state_queue.push_back(new_state);
-    //             }
-    //             C->addTransition(new_states[current_state], ch, new_states[new_state], RIGHT, "", v);  
-    //         }
-    //     }
     }
 
     return C;
@@ -595,10 +624,12 @@ void test(Two_DFT *B, Two_DFT *A, int numTests){
     set<char> alpha = A->getInputAlpha();
     Two_DFT *C = compose(B, A, true);
     int states = C->getStates();
+    printf("%d\n", states);
     int numRight = 0;
 
     for (int i = 0; i < numTests; i++){
         int len = rand() % states*2;
+        // int len = rand() % 100;
         string input = "";
         for (int j = 0; j < len; j++){
             int k = rand() % alpha.size();
@@ -618,6 +649,7 @@ void test(Two_DFT *B, Two_DFT *A, int numTests){
     }
 
     printf("# Correct Outputs: %d / %d\n", numRight, numTests);
+    printf("%d\n", states);
 }
 
 void test1(){ //swap a and b, then replace ab with cd
@@ -642,7 +674,7 @@ void test1(){ //swap a and b, then replace ab with cd
     n->addTransition(p, 'b', p, RIGHT, "d");
 
     printf("Starting composition\n");
-    test(n,m,100);
+    test(n,m,10000);
 }
 
 void test2(){ //if word ends with b, replace all a with c, otherwise do nothing
@@ -697,8 +729,49 @@ void test2(){ //if word ends with b, replace all a with c, otherwise do nothing
 
 }
 
+void test3(){ //swap every third letter then replace every other letter with cd
+    Two_DFT *m = new Two_DFT("ab", "ab");
+    deque<STATE> q = m->addStates(3);
+    STATE accept = m->addState();
+    m->makeAccept(accept);
+
+    m->addTransition(q[0], LEFT_ENDMARKER, q[0], RIGHT, "");
+    m->addTransition(q[0], RIGHT_ENDMARKER, accept, RIGHT, "");
+    m->addTransition(q[0], 'a', q[1], RIGHT, "a");
+    m->addTransition(q[0], 'b', q[1], RIGHT, "b");
+
+    m->addTransition(q[1], LEFT_ENDMARKER, q[1], RIGHT, "");
+    m->addTransition(q[1], RIGHT_ENDMARKER, accept, RIGHT, "");
+    m->addTransition(q[1], 'a', q[2], RIGHT, "a");
+    m->addTransition(q[1], 'b', q[2], RIGHT, "b");
+
+    m->addTransition(q[2], LEFT_ENDMARKER, q[0], RIGHT, "");
+    m->addTransition(q[2], RIGHT_ENDMARKER, accept, RIGHT, "");
+    m->addTransition(q[2], 'a', q[0], RIGHT, "b");
+    m->addTransition(q[2], 'b', q[0], RIGHT, "a");
+
+    Two_DFT *n = new Two_DFT("ab", "abcd");
+    deque<STATE> p = n->addStates(2);
+    STATE accept2 = n->addState();
+    n->makeAccept(accept2);
+
+    n->addTransition(p[0], LEFT_ENDMARKER, p[0], RIGHT, "");
+    n->addTransition(p[0], RIGHT_ENDMARKER, accept2, RIGHT, "");
+    n->addTransition(p[0], 'a', p[1], RIGHT, "a");
+    n->addTransition(p[0], 'b', p[1], RIGHT, "b");
+
+    n->addTransition(p[1], LEFT_ENDMARKER, p[1], RIGHT, "");
+    n->addTransition(p[1], RIGHT_ENDMARKER, accept2, RIGHT, "");
+    n->addTransition(p[1], 'a', p[0], RIGHT, "c");
+    n->addTransition(p[1], 'b', p[0], RIGHT, "d");
+
+    printf("Starting composition\n");
+    test(n,m,10000);
+}
+
 int main(){
     
-    test1();
+    // test1();
     // test2();
+    test3();
 }
