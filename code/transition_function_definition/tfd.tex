@@ -1,151 +1,159 @@
 \documentclass[12pt, a4paper]{article}
 
 \usepackage{algorithmic}
+\usepackage{amsfonts}
 
 \begin{document}
 \begin{algorithmic}
-    \STATE States $q_C = [q_A, q_B, q_{EBA}, q_{EBB}, w, i, k]$\\
+    \STATE States $q_C = [q_A, q_B, q_{LR}, q_{RL}, w, i, k]$\\
     \STATE $q_A \in Q_A$\\
     \STATE $q_B \in Q_B$\\
-    \STATE $q_{EBA} = $ state of Eilenburg bimachine A
-    \STATE $q_{EBB} = $ state of Eilenburg bimachine B
+    \STATE $q_{LR} = $ state of the left to right Eilenberg bimachine component
+    \STATE $q_{RL} = $ state of the right to left Eilenberg bimachine component
     \STATE $w \in \Gamma^* = $ intermediate word buffer\\
     \STATE $i \in |w| = $ position in $w$\\
-    \STATE $k \in \dots = $ control pointer\\
+    \STATE $k \in \mathbb{N} = $ control pointer\\
     \STATE $k = 0 : $ initialising the bimachines\\
     \STATE $k = 1 : $ simulating A and B\\
-    \STATE $k = 2 : $ look one to the right to backtrack bimachine EBB\\
-    \STATE $k = 4 : $ look one to the left to backtrack bimachine EBA\\
+    \STATE $k = 2 : $ look one to the right to backtrack bimachine RL\\
+    \STATE $k = 4 : $ look one to the left to backtrack bimachine LR\\
 
 
-    \STATE Initial state: $q_{C0} = [q_{A0}, q_{B0}, q_{EBA0}, q_{EBB0}, \epsilon, 0, 1]$
-    \STATE $q_{EBA0} = ([], [])$
-    \STATE $q_{EBB0} = ([])$
+    \STATE Initial state: $q_{C0} = [q_{A0}, q_{B0}, q_{LR0}, q_{RL0}, \epsilon, 0, 1]$
+    \STATE $q_{LR0} = ([], [])$
+    \STATE $q_{RL0} = ([])$
     \STATE $\delta_A(q_{A0}, <) \gets (q_A', d, <w)$ where $\delta_A(q_{A0}, <) = (q_A', d, w)$
 
     % \STATE Initialising the bimachines:
     % \STATE $\delta_C(q_{C0}, <) = (q_{C0}, +1, \epsilon)$
     % \STATE $\delta_C(q_{C0}, \sigma) = (q_{C0}, +1, \epsilon)$
-    % \STATE $\delta_C(q_{C0}, >) = ([q_{A0}, q_{B0}, q_{EBA0}, q_{EBB}', \epsilon, 0, 0], -1, \epsilon)$ where $\delta_{EBB}(q_{EBB0}, >) = q_{EBB}'$
-    % \STATE $\delta_C([q_{A0}, q_{B0}, q_{EBA0}, q_{EBB}, \epsilon, 0, 0], \sigma) = ([q_{A0}, q_{B0}, q_{EBA0}, q_{EBB}', \epsilon, 0, 0], -1, \epsilon)$ where $\delta_{EBB}(q_{EBB},\sigma) = q_{EBB}'$
-    % \STATE $\delta_C([q_{A0}, q_{B0}, q_{EBA0}, q_{EBB}, \epsilon, 0, 0], <) = ([q_{A0}, q_{B0}, q_{EBA0}, q_{EBB}, \epsilon, 0, 1], 0, \epsilon)$
+    % \STATE $\delta_C(q_{C0}, >) = ([q_{A0}, q_{B0}, q_{LR0}, q_{RL}', \epsilon, 0, 0], -1, \epsilon)$ where $\delta_{RL}(q_{RL0}, >) = q_{RL}'$
+    % \STATE $\delta_C([q_{A0}, q_{B0}, q_{LR0}, q_{RL}, \epsilon, 0, 0], \sigma) = ([q_{A0}, q_{B0}, q_{LR0}, q_{RL}', \epsilon, 0, 0], -1, \epsilon)$ where $\delta_{RL}(q_{RL},\sigma) = q_{RL}'$
+    % \STATE $\delta_C([q_{A0}, q_{B0}, q_{LR0}, q_{RL}, \epsilon, 0, 0], <) = ([q_{A0}, q_{B0}, q_{LR0}, q_{RL}, \epsilon, 0, 1], 0, \epsilon)$
     
 
     \STATE Accepting condition:
-    \STATE $\delta_C([q_A, q_{Baccept}, q_{EBA}, q_{EBB}, w, i, 1], \sigma) = (q_{Caccept}, 0, \epsilon)$
+    \STATE $\delta_C([q_A, q_{Baccept}, q_{LR}, q_{RL}, w, i, 1], \sigma) = (q_{Caccept}, 0, \epsilon)$
 
 
     \STATE Simulating transducer A to get the next w for transducer B to use:
-    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, |w|, 1], \sigma) = $\\
+    \STATE $\delta_C([q_A, q_B, q_{LR}, q_{RL}, w, |w|, 1], \sigma) = $\\
         \IF{$\delta_A(q_A, \sigma) = (a_Aaccept, 0, \epsilon)$}
-            \STATE $([q_Aaccept, q_B, q_{EBA}, q_{EBB}, >, 0, 1], 0, \epsilon)$
+            \STATE $([q_Aaccept, q_B, q_{LR}, q_{RL}, >, 0, 1], 0, \epsilon)$
         \ELSIF{$\delta_A(q_A, \sigma) = (q_A', 0, u)$}
-            \STATE $([q_A', q_B, q_{EBA}, q_{EBB}, u, 0, 1], 0, \epsilon)$
+            \STATE $([q_A', q_B, q_{LR}, q_{RL}, u, 0, 1], 0, \epsilon)$
         \ELSIF{$\delta_A(q_A, \sigma) = (q_A', +1, u)$ AND $\sigma \neq >$}
-            \STATE $([q_A', q_B, q_{EBA}', q_{EBB}, u, 0, 2], +1, \epsilon)$ where $\delta_{EBA}(q_{EBA}, \sigma) = q_{EBA}'$
+            \STATE $([q_A', q_B, q_{LR}', q_{RL}, u, 0, 2], +1, \epsilon)$ where $\delta_{LR}(q_{LR}, \sigma) = q_{LR}'$
         \ELSIF{$\delta_A(q_A, \sigma) = (q_A', -1, u)$ AND $\sigma \neq <$}
-            \STATE $([q_A', q_B, q_{EBA}, q_{EBB}', u, 0, 4], -1, \epsilon)$ where $\delta_{EBB}(q_{EBB}, \sigma) = q_{EBB}'$
+            \STATE $([q_A', q_B, q_{LR}, q_{RL}', u, 0, 4], -1, \epsilon)$ where $\delta_{RL}(q_{RL}, \sigma) = q_{RL}'$
         \ENDIF
     
-    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, 0, 2], >) = ([q_A, q_B, q_{EBA}, q_{EBB0}, w, 0, 1], 0, \epsilon)$
-    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, 0, 2], \sigma) = ([q_A, q_B, q_{EBA}, q_{EBB}, w, 0, 3], +1, \epsilon)$
-    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, 0, 3], \sigma) = ([q_A, q_B, q_{EBA}, q_{EBB}', w, 0, 1], -1, \epsilon)$ where $q_{EBB}'$ can be derived from the available information
+    \STATE $\delta_C([q_A, q_B, q_{LR}, q_{RL}, w, 0, 2], >) = ([q_A, q_B, q_{LR}, q_{RL0}, w, 0, 1], 0, \epsilon)$
+    \STATE $\delta_C([q_A, q_B, q_{LR}, q_{RL}, w, 0, 2], \sigma) = ([q_A, q_B, q_{LR}, q_{RL}, w, 0, 3], +1, \epsilon)$
+    \STATE $\delta_C([q_A, q_B, q_{LR}, q_{RL}, w, 0, 3], \sigma) = ([q_A, q_B, q_{LR}, q_{RL}', w, 0, 1], -1, \epsilon)$ where $q_{RL}'$ can be derived from the available information
 
-    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, 0, 4], <) = ([q_A, q_B, q_{EBA0}, q_{EBB}, w, 0, 1], 0, \epsilon)$
-    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, 0, 4], \sigma) = ([q_A, q_B, q_{EBA}, q_{EBB}, w, 0, 5], -1, \epsilon)$
-    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, 0, 5], \sigma) = ([q_A, q_B, q_{EBA}', q_{EBB}, w, 0, 1], +1, \epsilon)$ where $q_{EBA}'$ can be derived from the available information
+    \STATE $\delta_C([q_A, q_B, q_{LR}, q_{RL}, w, 0, 4], <) = ([q_A, q_B, q_{LR0}, q_{RL}, w, 0, 1], 0, \epsilon)$
+    \STATE $\delta_C([q_A, q_B, q_{LR}, q_{RL}, w, 0, 4], \sigma) = ([q_A, q_B, q_{LR}', q_{RL}', w, 0, 10, [], state], -1, \epsilon)$
+    \STATE $\delta_C([q_A, q_B, q_{LR}, q_{RL}, w, 0, 10, [candidates], state], \sigma) = $
+        \IF{$|candidates| = 1$}
+            \STATE $([q_A, q_B, q_{LR}', q_{RL}, w, 0, 1], +1, \epsilon)$ where $q_{LR}'$ can be derived from the available information
+        \ELSE
+            \STATE $([q_A, q_B, q_{LR}', q_{RL}', w, 0, 10, [candidates'], state], -1, \epsilon)$
+        \ENDIF
 
+    
+    % CONTINUE FROM HERE TRYING TO GET THE PREV CONNECTED STATE!_!
 
     \STATE Simulating transducer B on w:
-    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, i, 1], \sigma) = $
+    \STATE $\delta_C([q_A, q_B, q_{LR}, q_{RL}, w, i, 1], \sigma) = $
         \IF{$\delta_B(q_B, w[i]) = (q_B', 0, u)$}
-            \STATE $([q_A, q_B', q_{EBA}, q_{EBB}, w, i, 1], 0, u)$ 
+            \STATE $([q_A, q_B', q_{LR}, q_{RL}, w, i, 1], 0, u)$ 
         \ELSIF{$\delta_B(q_B, w[i]) = (q_B', +1, u)$ AND $w[i] \neq >$}
-            \STATE $([q_A, q_B', q_{EBA}, q_{EBB}, w, i+1, 1], 0, u)$ 
+            \STATE $([q_A, q_B', q_{LR}, q_{RL}, w, i+1, 1], 0, u)$ 
         \ELSIF{$\delta_B(q_B, w[i]) = (q_B', -1, u)$ AND $w[i] \neq <$}
-            \STATE $([q_A, q_B', q_{EBA}, q_{EBB}, w, i-1, 1], 0, u)$ 
+            \STATE $([q_A, q_B', q_{LR}, q_{RL}, w, i-1, 1], 0, u)$ 
         \ENDIF
 
     \STATE Backtrack transducer A if transducer B needs to go left out of w:
-    \STATE $\gamma(q_{EBA}, q_{EBB}, \sigma) = \alpha$
-    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, -1, 1], \sigma) = $\\
+    \STATE $\gamma(q_{LR}, q_{RL}, \sigma) = \alpha$
+    \STATE $\delta_C([q_A, q_B, q_{LR}, q_{RL}, w, -1, 1], \sigma) = $\\
     \IF{$\alpha(q_A) = 0$}
-        \STATE $([q_A', q_B, q_{EBA}, q_{EBB}, u, |u| - 1, 1], 0, \epsilon)$ where $\delta_A(q_A', \sigma) = (q_A, 0, u)$
+        \STATE $([q_A', q_B, q_{LR}, q_{RL}, u, |u| - 1, 1], 0, \epsilon)$ where $\delta_A(q_A', \sigma) = (q_A, 0, u)$
     \ELSIF{$\alpha(q_A) = +1$}
-        \STATE $([q_A, q_B, q_{EBA}', q_{EBB}, w, -1, 6], +1, \epsilon)$ where $\delta_{EBA}(q_{EBA}, \sigma) = q_{EBA}'$
+        \STATE $([q_A, q_B, q_{LR}', q_{RL}, w, -1, 6], +1, \epsilon)$ where $\delta_{LR}(q_{LR}, \sigma) = q_{LR}'$
     \ELSIF{$\alpha(q_A) = -1$}
-        \STATE $([q_A, q_B, q_{EBA}, q_{EBB}', w, -1, 8], -1, \epsilon)$ where $\delta_{EBB}(q_{EBB}, \sigma) = q_{EBB}'$
+        \STATE $([q_A, q_B, q_{LR}, q_{RL}', w, -1, 8], -1, \epsilon)$ where $\delta_{RL}(q_{RL}, \sigma) = q_{RL}'$
     \ENDIF
 
-    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, -1, 6], \sigma) = ([q_A, q_B, q_{EBA}, q_{EBB}, w, -1, 7], +1, \epsilon)$
-    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, -1, 7], \sigma) = ([q_A', q_B, q_{EBA}, q_{EBB}', u, |u|-1, 1], -1, \epsilon)$ where $q_{EBB}'$ can be derived from the available information and $\delta_A(q_A', \sigma) = (q_A, -1, u)$
+    \STATE $\delta_C([q_A, q_B, q_{LR}, q_{RL}, w, -1, 6], \sigma) = ([q_A, q_B, q_{LR}, q_{RL}, w, -1, 7], +1, \epsilon)$
+    \STATE $\delta_C([q_A, q_B, q_{LR}, q_{RL}, w, -1, 7], \sigma) = ([q_A', q_B, q_{LR}, q_{RL}', u, |u|-1, 1], -1, \epsilon)$ where $q_{RL}'$ can be derived from the available information and $\delta_A(q_A', \sigma) = (q_A, -1, u)$
 
-    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, -1, 8], \sigma) = ([q_A, q_B, q_{EBA}, q_{EBB}, w, 0, 8], -1, \epsilon)$
-    \STATE $\delta_C([q_A, q_B, q_{EBA}, q_{EBB}, w, -1, 9], \sigma) = ([q_A', q_B, q_{EBA}', q_{EBB}, u, |u|-1, 1], +1, \epsilon)$ where $q_{EBA}'$ can be derived from the available information and $\delta_A(q_A', \sigma) = (q_A, +1, u)$
+    \STATE $\delta_C([q_A, q_B, q_{LR}, q_{RL}, w, -1, 8], \sigma) = ([q_A, q_B, q_{LR}, q_{RL}, w, 0, 9], -1, \epsilon)$
+    \STATE $\delta_C([q_A, q_B, q_{LR}, q_{RL}, w, -1, 9], \sigma) = ([q_A', q_B, q_{LR}', q_{RL}, u, |u|-1, 1], +1, \epsilon)$ where $q_{LR}'$ can be derived from the available information and $\delta_A(q_A', \sigma) = (q_A, +1, u)$
 
 
 \end{algorithmic}
-\pagebreak
+% \pagebreak
 
 
 
-\begin{algorithmic}
-    \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, |w|, j, 1], \sigma) =$\\
-        \IF{$\alpha_j(q_A) = (q_A', 0, u)$}
-            \STATE $([q_A', q_B, \alpha_0 \alpha_1 \alpha_2, u, 0, j, 1], 0, \epsilon)$\\
-        \ELSIF{$\alpha_j(q_A) = (q_A', +1, u)$}
-            \IF{$(j \in \{0,1\})$}
-                \STATE $([q_A', q_B, \alpha_0 \alpha_1 \alpha_2, u, 0, j+1, 1], 0, \epsilon)$\\
-            \ELSIF{$(j = 2)$}
-                \STATE $([q_A', q_B, \alpha_0 \alpha_1 \alpha_2, u, 0, 2, 2], +1, \epsilon)$\\
-            \ENDIF
-        \ELSIF{$\alpha_j(q_A) = (q_A', -1, u)$}
-            \IF{$(j \in \{1, 2\})$}
-                \STATE $([q_A', q_B, \alpha_0 \alpha_1 \alpha_2, u, 0, j-1, 1], 0, \epsilon)$\\
-            \ELSIF{$(j = 0)$}
-                \STATE $([q_A', q_B, \alpha_0 \alpha_1 \alpha_2, u, 0, 0, 4], -1, \epsilon)$\\
-            \ENDIF
-        \ENDIF
+% \begin{algorithmic}
+%     \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, |w|, j, 1], \sigma) =$\\
+%         \IF{$\alpha_j(q_A) = (q_A', 0, u)$}
+%             \STATE $([q_A', q_B, \alpha_0 \alpha_1 \alpha_2, u, 0, j, 1], 0, \epsilon)$\\
+%         \ELSIF{$\alpha_j(q_A) = (q_A', +1, u)$}
+%             \IF{$(j \in \{0,1\})$}
+%                 \STATE $([q_A', q_B, \alpha_0 \alpha_1 \alpha_2, u, 0, j+1, 1], 0, \epsilon)$\\
+%             \ELSIF{$(j = 2)$}
+%                 \STATE $([q_A', q_B, \alpha_0 \alpha_1 \alpha_2, u, 0, 2, 2], +1, \epsilon)$\\
+%             \ENDIF
+%         \ELSIF{$\alpha_j(q_A) = (q_A', -1, u)$}
+%             \IF{$(j \in \{1, 2\})$}
+%                 \STATE $([q_A', q_B, \alpha_0 \alpha_1 \alpha_2, u, 0, j-1, 1], 0, \epsilon)$\\
+%             \ELSIF{$(j = 0)$}
+%                 \STATE $([q_A', q_B, \alpha_0 \alpha_1 \alpha_2, u, 0, 0, 4], -1, \epsilon)$\\
+%             \ENDIF
+%         \ENDIF
     
-    \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, 0, 2, 2], \sigma) = ([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, 0, 2, 3], +1, \epsilon)$\\
-    \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, 0, 2, 3], \sigma) = ([q_A, q_B, \alpha_0' \alpha_1' \alpha_2', w, 0, 2, 1], -1, \epsilon)$\\s.t. $\alpha_0' = \alpha_1, \alpha_1' = \alpha_2, \alpha_2' = G(\sigma)$
+%     \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, 0, 2, 2], \sigma) = ([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, 0, 2, 3], +1, \epsilon)$\\
+%     \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, 0, 2, 3], \sigma) = ([q_A, q_B, \alpha_0' \alpha_1' \alpha_2', w, 0, 2, 1], -1, \epsilon)$\\s.t. $\alpha_0' = \alpha_1, \alpha_1' = \alpha_2, \alpha_2' = G(\sigma)$
     
-    \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, 0, 0, 4], \sigma) = ([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, 0, 0, 5], -1, \epsilon)$\\
-    \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, 0, 0, 5], \sigma) = ([q_A, q_B, \alpha_0' \alpha_1' \alpha_2', w, 0, 0, 1], +1, \epsilon)$\\s.t. $\alpha_2' = \alpha_1, \alpha_1' = \alpha_0, \alpha_0' = G(\sigma)$
+%     \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, 0, 0, 4], \sigma) = ([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, 0, 0, 5], -1, \epsilon)$\\
+%     \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, 0, 0, 5], \sigma) = ([q_A, q_B, \alpha_0' \alpha_1' \alpha_2', w, 0, 0, 1], +1, \epsilon)$\\s.t. $\alpha_2' = \alpha_1, \alpha_1' = \alpha_0, \alpha_0' = G(\sigma)$
 
 
 
-    \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, -1, j, 1], \sigma) =$\\
-        \IF{$F(\alpha_0 \alpha_1 \alpha_2, j, q_A) \in \{0, 1, 2\}$}
-            \STATE ($[q_A', q_B, \alpha_0 \alpha_1 \alpha_2, u, |u|-1, F(\alpha_0 \alpha_1 \alpha_2, j, q_A), 1], 0, \epsilon)$\\s.t. $\alpha_{F(\alpha_0 \alpha_1 \alpha_2, j, q_A)}(q_A') = (q_A, d, u)$
-        \ELSIF{$j = 2$}
-            \STATE $([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, -1, 2, 6], +1, \epsilon)$
-        \ELSIF{$j = 0$}
-            \STATE $([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, -1, 2, 8], -1, \epsilon)$
-        \ENDIF
+%     \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, -1, j, 1], \sigma) =$\\
+%         \IF{$F(\alpha_0 \alpha_1 \alpha_2, j, q_A) \in \{0, 1, 2\}$}
+%             \STATE ($[q_A', q_B, \alpha_0 \alpha_1 \alpha_2, u, |u|-1, F(\alpha_0 \alpha_1 \alpha_2, j, q_A), 1], 0, \epsilon)$\\s.t. $\alpha_{F(\alpha_0 \alpha_1 \alpha_2, j, q_A)}(q_A') = (q_A, d, u)$
+%         \ELSIF{$j = 2$}
+%             \STATE $([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, -1, 2, 6], +1, \epsilon)$
+%         \ELSIF{$j = 0$}
+%             \STATE $([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, -1, 2, 8], -1, \epsilon)$
+%         \ENDIF
 
-    \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, -1, 2, 6], \sigma) = ([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, -1, 2, 7], +1, \epsilon)$
-    \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, -1, 2, 7], \sigma) = ([q_A', q_B, \alpha_0' \alpha_1' \alpha_2', u, |u|-1, 2, 1], -1, \epsilon)$\\s.t. $\alpha_0' = \alpha_1, \alpha_1' = \alpha_2, \alpha_2' = G(\sigma), \alpha_2'(q_A') = (q_A, -1, u)$
+%     \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, -1, 2, 6], \sigma) = ([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, -1, 2, 7], +1, \epsilon)$
+%     \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, -1, 2, 7], \sigma) = ([q_A', q_B, \alpha_0' \alpha_1' \alpha_2', u, |u|-1, 2, 1], -1, \epsilon)$\\s.t. $\alpha_0' = \alpha_1, \alpha_1' = \alpha_2, \alpha_2' = G(\sigma), \alpha_2'(q_A') = (q_A, -1, u)$
 
-    \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, -1, 2, 8], \sigma) = ([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, -1, 2, 9], -1, \epsilon)$
-    \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, -1, 2, 9], \sigma) = ([q_A', q_B, \alpha_0' \alpha_1' \alpha_2', u, |u|-1, 2, 1], +1, \epsilon)$\\s.t. $\alpha_2' = \alpha_1, \alpha_1' = \alpha_0, \alpha_0' = G(\sigma), \alpha_0'(q_A') = (q_A, -1, u)$
+%     \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, -1, 2, 8], \sigma) = ([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, -1, 2, 9], -1, \epsilon)$
+%     \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, -1, 2, 9], \sigma) = ([q_A', q_B, \alpha_0' \alpha_1' \alpha_2', u, |u|-1, 2, 1], +1, \epsilon)$\\s.t. $\alpha_2' = \alpha_1, \alpha_1' = \alpha_0, \alpha_0' = G(\sigma), \alpha_0'(q_A') = (q_A, -1, u)$
 
-    \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, i, j, 1], \sigma) = ([q_A, q_B', \alpha_0 \alpha_1 \alpha_2, w, i+d, j, 1], 0, u)$\\s.t. $(q_B', d, u) = \delta_B(q_B, w[i])$
-\end{algorithmic}
+%     \STATE $\delta_C([q_A, q_B, \alpha_0 \alpha_1 \alpha_2, w, i, j, 1], \sigma) = ([q_A, q_B', \alpha_0 \alpha_1 \alpha_2, w, i+d, j, 1], 0, u)$\\s.t. $(q_B', d, u) = \delta_B(q_B, w[i])$
+% \end{algorithmic}
 \pagebreak
 \begin{algorithmic}
     \STATE Eilenburg Bimachine Definition:
     \STATE $EB = (A, B, \Sigma, \Gamma, \gamma)$
-    \STATE $A = (Q_{EBA}, \Sigma, \delta_{EBA})$ Left to right sequential
-    \STATE $Q_{EBA} = (\subseteq Q_A \times Q_A, \subseteq Q_A)$ (all paths from column $i-1$ to $i-1$ while only visiting configurations $< i$, all states in layer $i-1$ that are reachable from the initial state while staying $< i$)
-    \STATE $\delta_{EBA}: Q_{EBA} \times \Sigma \to Q_{EBA}$
-    \STATE $B = (Q_{EBB}, \Sigma, \delta_{EBB})$ Right to left sequential
-    \STATE $Q_{EBB} = (\subseteq Q_A \times Q_A)$ (all paths from column $i+1$ to $i + 1$ while only visiting configurations $> i$)
-    \STATE $\delta_{EBB}: Q_{EBB} \times \Sigma \to Q_{EBB}$
+    \STATE $A = (Q_{LR}, \Sigma, \delta_{LR})$ Left to right sequential
+    \STATE $Q_{LR} = (\subseteq Q_A \times Q_A, \subseteq Q_A)$ (all paths from column $i-1$ to $i-1$ while only visiting configurations $< i$, all states in layer $i-1$ that are reachable from the initial state while staying $< i$)
+    \STATE $\delta_{LR}: Q_{LR} \times \Sigma \to Q_{LR}$
+    \STATE $B = (Q_{RL}, \Sigma, \delta_{RL})$ Right to left sequential
+    \STATE $Q_{RL} = (\subseteq Q_A \times Q_A)$ (all paths from column $i+1$ to $i + 1$ while only visiting configurations $> i$)
+    \STATE $\delta_{RL}: Q_{RL} \times \Sigma \to Q_{RL}$
     \STATE $\Sigma = $ Input alphabet
     \STATE $ \Gamma = $ Output alphabet
     \STATE $\gamma = $ Output function
-    \STATE $\gamma: Q_{EBA} \times Q_{EBB} \times \Sigma \to \Gamma$
+    \STATE $\gamma: Q_{LR} \times Q_{RL} \times \Sigma \to \Gamma$
 \end{algorithmic}
 
 

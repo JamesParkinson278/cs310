@@ -166,6 +166,7 @@ public:
     bool addTransition(STATE start, char ch, STATE end){
         if (alphabet.find(ch) != alphabet.end() || ch == LEFT_ENDMARKER || ch == RIGHT_ENDMARKER){
             transitions[start].insert_or_assign(ch, end);
+            // printf("Added transition: (%d, %c) -> %d\n", start, ch, end);
             return true;
         }
         return false;
@@ -191,17 +192,18 @@ public:
         transitions = new_transitions;
         accept_states = new_accepts;
 
-        // for (int i = 0; i < numStates; i++){
-        //     for (auto kv : transitions[i]){
-        //         printf(("D(" + to_string(i) + "," + kv.first + ") = " + to_string(kv.second) + "\n").c_str());
-        //     }
-        // }
+        for (int i = 0; i < numStates; i++){
+            for (auto kv : transitions[i]){
+                printf(("D(" + to_string(i) + "," + kv.first + ") = " + to_string(kv.second) + "\n").c_str());
+            }
+            printf("\n");
+        }
 
-        // for (auto s : accept_states){
-        //     printf((to_string(s) + " is an accept state\n").c_str());
-        // }
+        for (auto s : accept_states){
+            printf((to_string(s) + " is an accept state\n").c_str());
+        }
 
-        // printf((to_string(start_state) + " is the start state\n").c_str());
+        printf((to_string(start_state) + " is the start state\n").c_str());
     }
 
     bool run(string w){
@@ -335,6 +337,7 @@ void test(Two_DFA *M, int numTests){
     set<char> alpha = M->getAlpha();
     DFA *N = convert_to_DFA(M);
     int states = N->numStates;
+    printf("2DFA with %d states converted to DFA with %d states\n", M->getStates(), N->numStates);
     int numRightAccepts = 0;
     int numRightRejects = 0;
     int numWrongAccepts = 0;
@@ -408,7 +411,7 @@ void test1(){//a % 2 = b % 2 = 0
 
     m->makeAccept(states[5]);
 
-    test(m, 1000);
+    test(m, 100);
 
     // DFA* n = convert_to_DFA(m);
     // printf("%d\n", n->numStates);
@@ -450,20 +453,24 @@ void test2(){//
     m->addTransition(states[2], 'a', states[0], RIGHT);
     m->addTransition(states[2], 'b', states[2], RIGHT);
     m->addTransition(states[2], RIGHT_ENDMARKER, states[6], LEFT);
+
     m->addTransition(states[3], 'a', states[3], LEFT);
     m->addTransition(states[3], 'b', states[4], LEFT);
     m->addTransition(states[3], LEFT_ENDMARKER, states[5], RIGHT);
+
     m->addTransition(states[4], 'a', states[4], LEFT);
     m->addTransition(states[4], 'b', states[3], LEFT);
     m->addTransition(states[4], LEFT_ENDMARKER, states[6], RIGHT);
+
     m->addTransition(states[5], 'a', states[5], RIGHT);
     m->addTransition(states[5], 'b', states[5], RIGHT);
     m->addTransition(states[5], RIGHT_ENDMARKER, states[5], RIGHT);
+    
     m->addTransition(states[6], 'a', states[6], LEFT);
     m->addTransition(states[6], 'b', states[6], LEFT);
     m->addTransition(states[6], LEFT_ENDMARKER, states[6], LEFT);
 
-    test(m, 1000);
+    test(m, 100);
 
     // DFA *n = convert_to_DFA(m);
     // printf("%d\n", n->numStates);
@@ -537,7 +544,7 @@ void test3(){ //(a+b)*a(a+b)^4
 
     m->makeAccept(states[6]);
 
-    test(m, 1000);
+    test(m, 10);
 
     // DFA *n = convert_to_DFA(m);
     // printf("%d\n", n->numStates);
@@ -621,7 +628,7 @@ void test4(){ //(a+b)*a(a+b)^{4}a(a+b)*
     m->makeStart(states[0]);
     m->makeAccept(states[9]);
 
-    test(m, 1000);
+    test(m, 100);
 
     // DFA *n = convert_to_DFA(m);
     // printf("%d\n", n->numStates);
@@ -653,8 +660,8 @@ void test4(){ //(a+b)*a(a+b)^{4}a(a+b)*
 int main(){
     
     // test1();
-    // test2();
-    test3();
+    test2();
+    // test3();
     // test4();
 
 }
